@@ -3,7 +3,7 @@
 
 ![](https://ricetron.com/assets/images/left-image.png)
 
-Ricetron is a DeFi staking platform on TRON blockchain designed for minting RET (RICE ECONOMY TOKEN) token, a governance token for Rice Stable coin. Created spesifically to strenghen Asian food security.
+Ricetron is a DeFi staking platform on TRON blockchain designed for minting RET (RICE ECONOMY TOKEN) token, a governance token for Rice Stable coin. Created spesifically to strenghen Indonesian food security.
 
 ## SOLUTIONS
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.12;
 
 import "./ITRC20.sol";
-import "./Ownable.sol";
+import "./token/Ownable.sol";
 import "./juslink.sol";
 
 contract RiceLending is Ownable {
@@ -66,7 +66,7 @@ contract RiceLending is Ownable {
         uint256 maxtoken;
     }
     
-    Interest[]  interest_;
+    Interest[]  public interest_;
 
     mapping(address => User) private _users;
     mapping(address => Supply) private _supply;
@@ -84,31 +84,31 @@ contract RiceLending is Ownable {
     constructor(PriceConsumer _PriceAddress,address _RET,address _RIC,address _USDT,address _BTC,address _ETH) public {
         PriceInterface = _PriceAddress;
         bytes32 symbol_ = stringToBytes32('TRX');
-        
-         interest_.push(Interest(stringToBytes32('RET'),42000,42030,100*10e2));
-         interest_.push(Interest(stringToBytes32('RET'),21000,21030,150*10e12));
-         interest_.push(Interest(stringToBytes32('RET'),4000,4030,170*10e12));
-         interest_.push(Interest(stringToBytes32('RET'),250,280,1001*10e12));
-         interest_.push(Interest(stringToBytes32('RET'),200,230,1000*10e12));
-         interest_.push(Interest(stringToBytes32('RET'),180,210,6000*10e12));
-         interest_.push(Interest(stringToBytes32('RET'),150,180,10000*10e12));
+        /*
+         interest_.push(Interest(stringToBytes32('RET'),42000,42030,100e12));
+         interest_.push(Interest(stringToBytes32('RET'),21000,21030,150e12));
+         interest_.push(Interest(stringToBytes32('RET'),4000,4030,170e12));
+         interest_.push(Interest(stringToBytes32('RET'),250,280,1000e12));
+         interest_.push(Interest(stringToBytes32('RET'),200,230,10000e12));
+         interest_.push(Interest(stringToBytes32('RET'),180,210,60000e12));
+         interest_.push(Interest(stringToBytes32('RET'),150,180,100000e12));
          
-         interest_.push(Interest(stringToBytes32('TRX'),80,110,200000*10e6));
-         interest_.push(Interest(stringToBytes32('TRX'),60,90,50000*10e6));
+         interest_.push(Interest(stringToBytes32('TRX'),80,110,200000e6));
+         interest_.push(Interest(stringToBytes32('TRX'),60,90,500000e6));
          
-         interest_.push(Interest(stringToBytes32('BTC'),35,110,1*10e8));
-         interest_.push(Interest(stringToBytes32('BTC'),25,90,2*10e8));
+         interest_.push(Interest(stringToBytes32('BTC'),35,110,1e8));
+         interest_.push(Interest(stringToBytes32('BTC'),25,90,2e8));
          
-         interest_.push(Interest(stringToBytes32('USDT'),110,140,100000000000000000000000));
-         interest_.push(Interest(stringToBytes32('USDT'),80,110,200000000000000000000000));
+         interest_.push(Interest(stringToBytes32('USDT'),110,140,100000e6));
+         interest_.push(Interest(stringToBytes32('USDT'),80,110,200000e6));
          
-         interest_.push(Interest(stringToBytes32('RIC'),110,140,100000000000000000000000));
-         interest_.push(Interest(stringToBytes32('RIC'),80,110,200000000000000000000000));
+         interest_.push(Interest(stringToBytes32('RIC'),110,140,100000e6));
+         interest_.push(Interest(stringToBytes32('RIC'),80,110,200000e6));
          
-         interest_.push(Interest(stringToBytes32('ETH'),45,75,2000000000000000000));
-         interest_.push(Interest(stringToBytes32('ETH'),35,65,2000000000000000000));
-         interest_.push(Interest(stringToBytes32('ETH'),25,55,10000000000000000000));
-        
+         interest_.push(Interest(stringToBytes32('ETH'),45,75,2e18));
+         interest_.push(Interest(stringToBytes32('ETH'),35,65,10e18));
+         interest_.push(Interest(stringToBytes32('ETH'),25,55,100e18));
+        */
         
         _tokenID.push(IDToken({
             id: 'TRX',
@@ -211,7 +211,9 @@ contract RiceLending is Ownable {
     }
  
     function addinterest(string memory tokenname_,uint256 _supplyr,uint256 _borrowr, uint256 _maxtoken) public onlyOwner returns(bool) {
-         interest_.push(Interest(stringToBytes32(tokenname_),_supplyr,_borrowr,_maxtoken));
+        bytes32 _tokens = stringToBytes32(tokenname_);
+        uint256 dec = uint256(_getdecimals(_tokens));
+         interest_.push(Interest(stringToBytes32(tokenname_),_supplyr,_borrowr,_maxtoken*(10**dec)));
         return true;
     }
 
@@ -305,6 +307,8 @@ contract RiceLending is Ownable {
                 _safetokentransfer(_tokens, msg.sender, _amt);
             }
         }
+        
+        changeRate(_tokens, getSupplyInterest(_tokens), getBorrowInterest(_tokens));
         _addreward(msg.sender);
         _addrate(msg.sender);
         emit BorrowToken(msg.sender, _token, _amt);
@@ -329,8 +333,9 @@ contract RiceLending is Ownable {
         bytes32 _tokens = stringToBytes32(_token);
         uint256 repay_amt = _tokens == 'TRX' ? msg.value : _amt;
         uint256 store_amt = _tokens == 'TRX' ? msg.value : _amt;
-        
         _addrate(msg.sender);
+        uint256 borrow_amt = _getborrow(msg.sender);
+        require(borrow_amt>0,"No debt need to repay");
         uint256 _fee = 0 ;
         if(_tokens != 'TRX'){
             address contract_ = tokens[_tokens];
@@ -445,7 +450,7 @@ contract RiceLending is Ownable {
             token: _tokens,
             amount: _amt,
             reward: 0,
-            collateral: false,
+            collateral: true,
             lastchange: block.timestamp
         }));
     }
@@ -752,6 +757,7 @@ contract RiceLending is Ownable {
                    
             }
         }
+        changeRate(_tokens, getSupplyInterest(_tokens), getBorrowInterest(_tokens));
         emit Withdraw(msg.sender,_token,_amt,uint256(block.timestamp));
         return true;
        
